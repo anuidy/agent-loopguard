@@ -1,0 +1,5 @@
+# Host + optional settings UI. Defaults live in Config schema / Settings card.
+- insert:
+    - id: '@goodandready/dsh-agent-loop-guard'
+      name: '@goodandready/dsh-agent-loop-guard'
+      config: {}

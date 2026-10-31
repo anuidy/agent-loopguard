@@ -1,0 +1,17 @@
+Upstream: GooDAnDReaDY/dsh-agent-loop-guard
+Package: @goodandready/dsh-agent-loop-guard@0.2.24
+Release commit: d1d75e3395b09e6acd84246578626c27b33581a5
+Source: https://github.com/GooDAnDReaDY/dsh-agent-loop-guard
+License: MIT, Copyright (c) 2026 GooDAnDReaDY.
+
+vendor/dsh-agent-loop-guard-0.2.24 preserves the published npm package.
+packages/loopguard/lib is a development copy of its lib directory. On day 1,
+all implementation files remain byte-identical; later changes belong here.
+The original MIT notice is preserved in both locations.
+
+The runtime is supplied by @deepseek-ai/cordis, @deepseek-ai/dsh-tools and
+@deepseek-ai/schemastery. Exact versions are pinned in package-lock.json.
+
+lab/probe.mjs and fixtures/failing_test.py were carried over from the local
+source audit. lab/native-harness.mjs adds lifecycle observations for teaching.
+The result-bridge mode is an explicit diagnostic control, not the new policy.

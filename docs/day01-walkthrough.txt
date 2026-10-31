@@ -1,0 +1,139 @@
+第 1 天：把一次工具调用看清楚
+目标：能运行、能沿事件读代码、能指出接口问题发生在哪里。
+
+第一步：只运行默认示例
+在 PowerShell 中：
+Set-Location -LiteralPath 'D:\其他\简历相关\agent-loopguard'
+npm.cmd run day1
+
+预期最后两项：
+denial = LOOP_GUARD_DUPLICATE
+File on disk = after; third read entered tool body = false
+退出码 0 表示复现符合预期，不代表缺陷已修复。
+
+今天谁在做什么
+1. lessons/day1.mjs 提供固定动作：读、改、再读。
+   在完整 Agent 中这些动作来自模型。这里用脚本固定动作，以便逐条解释因果。
+2. lab/native-harness.mjs 装配真实 Cordis Context、真实 DSH ToolRuntime、原版插件。
+   Agent handle 和应用外围服务是替身，模型没有参与这些调用。
+3. packages/loopguard/lib 是后续开发的插件副本，今天仍与上游字节一致。
+4. vendor/ 保存固定发布包和许可证，作为以后对比的 A 组。
+
+三个核心对象
+Context：服务和事件的连接点。ctx.provide 提供服务，ctx.on 注册事件处理器。
+ToolRuntime：工具注册表和执行管线。tools.register 放入定义，tools.execute 才发起调用。
+LoopGuardState：以 Agent/会话和 turn 为范围，记录调用指纹、预算、结果和进展 epoch。
+
+运行时与循环
+Agent loop 负责模型请求、读取工具请求、执行工具、把结果交给下一次模型请求。
+runtime 为执行提供服务、工具管线、取消信号、事件和插件接入点。
+本项目的守卫位于工具执行管线，会影响 loop 能否继续使用工具。
+今天的脚本直接驱动工具运行时，因此测的是组件行为；完整模型 loop 在后续任务中接入。
+
+从最短的代码开始读
+先打开 lessons/day1.mjs，只看 createHarness、h.register 和三次 h.call。
+
+const h = await createHarness(...)
+含义：创建服务容器、工具运行时、外围替身和守卫插件，并初始化本轮状态。
+await 的含义与 Python 相同：等这个异步操作完成，拿到结果再向下执行。
+
+h.register('read_file', () => readFile(path, 'utf8'), ...)
+含义：登记工具名、参数结构、实际函数和输出渲染规则。登记本身不会读取文件。
+() => readFile(...) 是回调函数，可近似理解为 Python 中不带参数、返回 read_file 结果的函数。
+
+await h.call('read_file', { path: 'config.txt' })
+含义：辅助函数分配 callId，然后调用真正的 tools.execute。
+它不会直接执行 readFile，因此会经过守卫和完整工具结果通路。
+{ path: 'config.txt' } 是 JavaScript 对象，作用接近 Python 字典。
+
+再打开 lab/native-harness.mjs，按下面顺序读
+createHarness：装配 Context 和 ToolRuntime。
+ctx.plugin：把原版 LoopGuard 加载进真实 Context。
+register：将工具函数包装为实际 ToolRuntime 接受的定义。
+call：建立调用身份与取消信号，进入 tools.execute。
+ctx.on('tools/result', ...)：观察真实事件的两个参数。
+dispose：移除观察器与插件，避免跨案例残留状态。
+
+今天只需掌握几个生命周期点
+agent/pre-step：模型 step 开始前的钩子；原插件在此根据 turn 初始化/保留本轮状态。
+tools/pre-execute：工具执行前的策略钩子。
+tools.guard：单调守卫，返回理由就拒绝，返回 undefined 表示本守卫没有拒绝。
+tools/execute：守卫允许后进入的 around-dispatch 包装链。
+tool/body：本实验加的观测标记，表示真正进入工具函数；它不是 DSH 原生事件。
+tools/result：最终结果通知，即使工具被守卫拒绝也会产生结果。
+
+turn 与 step 不等同
+一个用户任务 turn 可以包含多个模型 step；同一 turn 内的 pre-step 不应清空预算。
+原插件 beginTurn 仅在 turn 变化时建立新状态。本例在同一 turn 内调用三次工具。
+callId 标识某一次工具调用；job_id 标识后台作业，多个查询调用可以属于同一 job_id。
+
+看默认日志中的三次调用
+第一次 read_file：pre-execute → guard/observe → execute → body → result(before)。
+第二次 write_file：pre-execute → guard/observe → execute → body → result(written)。
+第三次 read_file：pre-execute → result(LOOP_GUARD_DUPLICATE)。
+第三次没有进入 execute/body，所以是执行之前的拦截；文件实际内容仍然已经变成 after。
+
+guard/observe 的特殊说明
+这是实验加的无副作用观察守卫，不是上游插件的决策输出。
+它返回 undefined，不会推翻其他守卫的拒绝。判断工具是否真正执行，要看 tools/execute 和 tool/body。
+不要把 script/action、tool/body、guard/observe 当成 DSH 原生事件名。
+
+接口问题的关键：exec 与 result 分开传递
+真实通知形状：
+ctx.on('tools/result', (exec, result) => { ... })
+exec 是调用身份：工具名、参数、callId、Agent、signal 等。
+result 是执行结果：isError、value、content 等。
+
+上游 packages/loopguard/lib/index.js 中的监听器只接收 execution，随后传给 recordResult。
+guard-state.js 的 outcomeFromExecution 却尝试从 execution.result 或 execution.output 取结果。
+真实 exec 没有这些字段，因此原版状态机把结果视为 unknown，未观察到写入带来的进展。
+已有 read_file 指纹保留，第三次相同参数的 read_file 被判为无新证据的重复调用。
+
+第二步：运行只修接入的诊断对照
+npm.cmd run day1 -- --bridge
+预期：第三次出现 execute、tool/body，result.value 为 after。
+桥接代码在 native-harness.mjs 的 mounted 分支：
+(execution, result) => callback({ ...execution, result })
+...execution 把原对象字段复制到新对象，再加 result 字段。
+这个新对象只传给原插件监听器；原生 exec 本身未修改。
+因此桥接模式的观察日志仍显示 exec has result field = false，这是正常的。
+
+第三步：有余力再看等待案例
+npm.cmd run day1 -- polling
+npm.cmd run day1 -- polling --bridge
+原版第二次查询被拦；桥接后第三次被拦，真实子进程当时仍在运行，随后成功退出。
+这说明结果接入和进展语义是两层问题：修好接口不等于区分了合法等待与无效重试。
+700ms 后台进程和 25ms 等待只是为了快速重放状态序列。
+
+完整基线与 Python 分工
+npm.cmd run probe
+npm.cmd run report
+probe 运行 19 条组件轨迹，report 用 Python 读取 JSON 做摘要。
+Node.js 负责需要在 DSH 进程内同步生效的工具守卫；Python 负责离线任务评测和统计。
+
+DeepSeek 官方接口
+npm.cmd run models
+仅 GET https://api.deepseek.com/models，环境变量存在且校验通过时列出可用模型名。
+已确认 deepseek-flash 和 deepseek-v4-pro 可见；目前配置以 deepseek-flash 作为后续候选。
+尚未运行生成请求，不能把模型列表可用等同于完整 Agent 任务已成功。
+
+完整 DSH 的入口核实
+tools/dsh.ps1 调用现有桌面 CLI，给子进程设置项目自己的 .runtime/dsh-home。
+本机外部 PowerShell 可运行：
+& .\tools\dsh.ps1 --version
+& .\tools\dsh.ps1 --profile headless --help
+当前受限执行环境在第二条出现 app.asar realpath EPERM，已保存日志。
+若外部终端也失败，只需提供错误类型和堆栈，不要贴任何含密钥的配置。
+完整 headless 的排障是后续环境项；不影响今天的原生工具组件实验。
+
+个人练习验收（工程自动验证完成不代表你已学完）
+[ ] 自己运行默认 day1，找到第三次调用缺失的两个执行标记。
+[ ] 运行 --bridge，解释为什么第三次能读取 after。
+[ ] 用自己的话区分 exec/result、Context/ToolRuntime/LoopGuardState。
+[ ] 能说明固定工具动作的组件回放，与完整模型 Agent loop 各验证什么。
+先完成第一项，再逐段交流，不必一次读完本文件。
+
+官方参考
+工具管线：https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/src/index.ts
+官方 headless：https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/bundle/headless/README.md
+模型列表：https://api-docs.deepseek.com/api/list-models/

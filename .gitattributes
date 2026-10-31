@@ -1,0 +1,5 @@
+# Preserve the upstream release bytes used by verify:vendor across platforms.
+vendor/dsh-agent-loop-guard-0.2.24/** -text
+
+# Keep the development copy comparable to the upstream JavaScript baseline.
+packages/loopguard/lib/** text eol=lf

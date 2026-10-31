@@ -1,0 +1,11 @@
+flowchart TD
+  P["agent/pre-step：保留或初始化本轮状态"] --> A["模型或实验脚本给出工具请求"]
+  A --> B["tools/pre-execute"]
+  B --> G{"tools.guard 是否拒绝"}
+  G -->|允许| E["tools/execute 包装链"]
+  E --> T["实际工具函数：tool/body 观测标记"]
+  T --> R["结果处理与 tools/result(exec, result)"]
+  G -->|拒绝| D["构造拒绝结果，工具函数不执行"]
+  D --> R
+  R --> S["插件观察结果并更新状态"]
+  R --> L["结果交回 Agent loop 或实验脚本"]

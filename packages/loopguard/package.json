@@ -1,0 +1,14 @@
+{
+  "name": "@agent-loopguard/plugin",
+  "version": "0.1.0-dev.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": { ".": "./lib/index.js", "./package.json": "./package.json" },
+  "description": "Development copy derived from dsh-agent-loop-guard 0.2.24",
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/schemastery": "~3.18.5"
+  }
+}

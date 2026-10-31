@@ -1,0 +1,45 @@
+项目进度：DeepSeek Harness 工具语义感知循环控制
+第 1 天实际启动：2026-10-19 19:06（UTC+8）
+每日基础预算 3 小时；个人练习实际投入时间由本人记录，不能以自动执行时长代替。
+
+工程准备已完成
+[x] 前期审计目录的 19 条回放重新运行，通过。
+[x] 建立独立项目 agent-loopguard，固定 Node/Cordis/DSH 工具运行时和源码来源。
+[x] 保留上游完整 npm 包、SHA-256 清单及 MIT 许可证，另建开发副本。
+[x] 将 19 条组件回放迁入新目录，在独立且同版本 peer 依赖环境再次通过。
+[x] 新增可观测的读改再读、后台等待和结果桥接案例，运行与断言通过。
+[x] 开发副本装载验证完成；实现文件仍与原版一致，未提前修改第 2 天接口修复。
+[x] 增加 Python 结果摘要与官方模型列表检查；GET /models 返回 200。
+[x] 找到桌面 CLI：0.2.1-rc.2，顶层 --help 成功。
+[x] 编写第 1 天讲解、运行命令和关键事件图。
+
+环境项待核实
+[ ] 完整 headless 启动：当前受限环境出现 app.asar realpath EPERM；需从本机外部终端核实。
+日志：results/environment/dsh-headless-help.txt。
+模型列表验证不等同于模型生成或完整 Agent 任务验证。
+
+个人练习待验收
+[ ] 自己运行 npm.cmd run day1，定位第三次工具请求被拦的位置。
+[ ] 运行结果桥接对照并解释差异。
+[ ] 能解释 Context、ToolRuntime、LoopGuardState，以及 exec 与 result 的职责。
+
+下一次从这里开始
+在 lessons/day1.mjs 找到三次 h.call，结合 lab/native-harness.mjs 的 call 方法，
+追踪第一次读取；再对比第三次为什么没有 tools/execute 和 tool/body。
+完成学习验收后，再开始第 2 天正式接口修复。
+
+2026-10-21 接手核实（助手执行，个人验收未完成）
+- 已完整读取交接文件，并核对 README、教学入口、装配代码和原生工具结果通知实现。
+- packages/loopguard/lib 的 5 个实现文件与 vendor 原版哈希一致；未修改插件代码。
+- npm.cmd run verify:vendor：12 个上游文件哈希校验通过。
+- npm.cmd run report：成功读取已有 19 条组件轨迹；本次未重跑 probe，不将历史结果记作今日重跑。
+- npm.cmd run day1：退出码 0；第三次读取被 LOOP_GUARD_DUPLICATE 拦截，未进入工具函数，磁盘内容为 after。此项表示缺陷复现符合预期。
+- 个人用时：待本人记录；自己运行与理解验收仍待确认。
+- 下一步：本人运行默认 day1，沿三次 h.call 对照执行标记；确认后继续 --bridge 诊断对照。
+
+2026-10-24 总体结构讲解（助手整理，个人验收未完成）
+- 根据实际接入代码、状态机与教学夹具整理 docs/项目总览.md，说明作用、结构和执行前检查/执行后更新的闭环。
+- 文档区分当前上游机制、已有诊断桥接、待实现语义策略及完整模型任务评测。
+- 未修改插件实现；个人用时和理解验收仍待本人确认，继续第 1 天学习阶段。
+- 助手运行 npm.cmd run day1 -- --bridge：退出码 0；第三次读取进入 tools/execute 和 tool/body，返回 after。原生日志仍显示 exec has result field = false，符合桥接仅创建新对象传给插件的设计。
+- 此次为诊断桥接组件回放，未修改正式插件，未运行完整模型 Agent 任务；个人理解验收仍待确认。

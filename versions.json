@@ -1,0 +1,39 @@
+{
+  "project": "agent-loopguard",
+  "stage": "day-1",
+  "started_at": "2026-10-19T11:06:19Z",
+  "source": {
+    "package": "@goodandready/dsh-agent-loop-guard",
+    "version": "0.2.24",
+    "commit": "d1d75e3395b09e6acd84246578626c27b33581a5",
+    "url": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard",
+    "npm_integrity": "sha512-2C35Mmm4uCp135CwvjzhUqnMTZ0uF/ZnJ4kcokVwSGHEgSMZOieCml3E90q5JuDyfnvSXIT3BHh1Bepq5y3EFg==",
+    "license": "MIT"
+  },
+  "runtime": {
+    "node": "24.15.0",
+    "python": "3.12",
+    "dsh_tools": "0.2.1-rc.2",
+    "cordis": "4.0.5",
+    "schemastery": "3.18.5",
+    "desktop_cli": "0.2.1-rc.2",
+    "dsh_llm": "0.2.1-rc.2",
+    "dsh_scope": "0.2.1-rc.2",
+    "dsh_sandbox": "0.2.1-rc.2"
+  },
+  "vendor_sha256": {
+    "CHANGELOG.md": "cdb407d8981b32038e9cd37c26c754fdb73ad5033c61835a568d8932bf318062",
+    "cordis.patch.yml": "48d234d74ecafd31d3bc63d7d7ea15aa3ad99848c71d098790cb7bc81db81627",
+    "LICENSE": "dc6f2fbad994189e1e1466c51173363264826fc454f0cfccdafa91a9a41b6365",
+    "package.json": "e15bbe449e699177c129053217b036d7b69345ab79ac673dfb560673c6ae846b",
+    "README.md": "9844b9fb30b835e76176f91bcad75bb293622a461091aff675e2507001afd32f",
+    "README.ru.md": "fe651a8f239322e989bd74840a0cfa8618d819388e7e61f155f3c45c3945e92e",
+    "README.zh.md": "7c244148a84d3a52cb778e28976a260cdb5388fadd81227659676704132163c1",
+    "lib/assistant-output-state.js": "6e0bc43e7eb46537789abcfa29a4bda7793e9a01be34dffefb776248fcaeef41",
+    "lib/client.js": "703ff63adfa734b460c082a4eaea31bd11c8379a20281ee4bdc4933d96a35d4c",
+    "lib/guard-state.js": "0addbbcc803809f28c12734eedd955a9feb0b0ecfdbee3d5ad1fde4e22377761",
+    "lib/index.js": "aa71f5cf5ee5c7358d6f1f288db1960307e496acc473094222ce7554090498e1",
+    "lib/plugin-updater.js": "bdc57bee20e1815db1ddbb36d54708525343ecb3644d7c3272e9c04b0f04f09a"
+  },
+  "working_copy": "packages/loopguard/lib (unmodified upstream implementation on day 1)"
+}
