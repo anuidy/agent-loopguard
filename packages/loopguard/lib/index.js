@@ -41,6 +41,13 @@ export const Config = Schema.object({
   strictTools: Schema.array(Schema.string()).volatile().default([]),
   strictToolLimit: Schema.number().volatile().min(1).default(3),
   blockExactDuplicates: Schema.boolean().volatile().default(true),
+  semanticActions: Schema.boolean().volatile().default(false),
+  semanticEvidence: Schema.boolean().volatile().default(false),
+  semanticWaits: Schema.boolean().volatile().default(false),
+  maxWaitPollsPerJob: Schema.number().volatile().min(1).default(12),
+  maxWaitPollsPerTurn: Schema.number().volatile().min(1).default(32),
+  maxJobWaitMs: Schema.number().volatile().min(1).default(120_000),
+  minJobPollIntervalMs: Schema.number().volatile().min(0).default(200),
   dryRunMode: Schema.boolean().volatile().default(false),
   assistantOutputGuard: Schema.boolean().volatile().default(true),
   maxRepeatedAssistantLines: Schema.number().volatile().min(1).default(5),
@@ -151,6 +158,16 @@ export function apply(ctx, config = {}) {
     ...raw,
     logger: ctx.logger,
     onViolation: (event) => logGuardViolation(ctx, event),
+    onDecision: (event) => ctx.emit('loopguard/decision', event),
+    getJobStatus: (agent, jobId) => {
+      // Observe the official registry without consuming output or replacing
+      // its wait/completion-notification implementation. Jobs is optional.
+      try {
+        return ctx.get('jobs')?.list(agent?.id).find(job => job.id === jobId)?.status;
+      } catch {
+        return undefined;
+      }
+    },
   });
   const assistantState = new AssistantOutputGuardState({
     maxRepeatedAssistantLines: raw.maxRepeatedAssistantLines,
@@ -302,8 +319,9 @@ export function apply(ctx, config = {}) {
     return next();
   });
 
-  ctx.on('tools/result', (execution) => {
-    state.recordResult(execution.agent, execution);
+  ctx.on('tools/result', (execution, result) => {
+    // Native events keep the frozen call identity and final result separate.
+    state.recordResult(execution.agent, { ...execution, result });
   });
 
   ctx.on('session/event', (session, event) => {

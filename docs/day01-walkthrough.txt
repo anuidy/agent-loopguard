@@ -1,6 +1,10 @@
 第 1 天：把一次工具调用看清楚
 目标：能运行、能沿事件读代码、能指出接口问题发生在哪里。
 
+2026-11-01 更新：本文件的默认运行仍演示固定的上游原版。
+工作副本已完成原生结果接入与生命周期修复，使用 npm.cmd run day1 -- --working 对照。
+第 2 天说明见 docs/day02-result-integration.md；个人学习验收仍独立记录。
+
 第一步：只运行默认示例
 在 PowerShell 中：
 Set-Location -LiteralPath 'D:\其他\简历相关\agent-loopguard'
@@ -8,7 +12,7 @@ npm.cmd run day1
 
 预期最后两项：
 denial = LOOP_GUARD_DUPLICATE
-File on disk = after; third read entered tool body = false
+File on disk = after; call 3 (second read) entered tool body = false
 退出码 0 表示复现符合预期，不代表缺陷已修复。
 
 今天谁在做什么
@@ -16,7 +20,7 @@ File on disk = after; third read entered tool body = false
    在完整 Agent 中这些动作来自模型。这里用脚本固定动作，以便逐条解释因果。
 2. lab/native-harness.mjs 装配真实 Cordis Context、真实 DSH ToolRuntime、原版插件。
    Agent handle 和应用外围服务是替身，模型没有参与这些调用。
-3. packages/loopguard/lib 是后续开发的插件副本，今天仍与上游字节一致。
+3. packages/loopguard/lib 是开发副本；第 1 天与原版一致，当前已应用接入与生命周期修复。
 4. vendor/ 保存固定发布包和许可证，作为以后对比的 A 组。
 
 三个核心对象
@@ -84,7 +88,7 @@ ctx.on('tools/result', (exec, result) => { ... })
 exec 是调用身份：工具名、参数、callId、Agent、signal 等。
 result 是执行结果：isError、value、content 等。
 
-上游 packages/loopguard/lib/index.js 中的监听器只接收 execution，随后传给 recordResult。
+上游 vendor/dsh-agent-loop-guard-0.2.24/lib/index.js 的监听器只接收 execution，随后传给 recordResult。
 guard-state.js 的 outcomeFromExecution 却尝试从 execution.result 或 execution.output 取结果。
 真实 exec 没有这些字段，因此原版状态机把结果视为 unknown，未观察到写入带来的进展。
 已有 read_file 指纹保留，第三次相同参数的 read_file 被判为无新证据的重复调用。

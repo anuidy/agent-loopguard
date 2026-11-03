@@ -1,6 +1,6 @@
 {
   "project": "agent-loopguard",
-  "stage": "day-1",
+  "stage": "limited-tool-semantics",
   "started_at": "2026-10-19T11:06:19Z",
   "source": {
     "package": "@goodandready/dsh-agent-loop-guard",
@@ -35,5 +35,5 @@
     "lib/index.js": "aa71f5cf5ee5c7358d6f1f288db1960307e496acc473094222ce7554090498e1",
     "lib/plugin-updater.js": "bdc57bee20e1815db1ddbb36d54708525343ecb3644d7c3272e9c04b0f04f09a"
   },
-  "working_copy": "packages/loopguard/lib (unmodified upstream implementation on day 1)"
+  "working_copy": "packages/loopguard/lib (native result/lifecycle fixes plus opt-in shell identity, scoped unittest evidence and bounded job waits)"
 }

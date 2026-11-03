@@ -23,13 +23,18 @@ export async function createHarness({
   config = {},
   message = 'Inspect the experiment results.',
   onTrace = () => {},
+  jobs,
 } = {}) {
   if (!['upstream', 'working'].includes(variant)) throw new Error(`Unknown variant: ${variant}`);
+  if (bridgeResult && variant === 'working') {
+    throw new Error('--bridge is an upstream diagnostic; the working plugin handles native results directly.');
+  }
   const Guard = variant === 'working' ? WorkingGuard : UpstreamGuard;
   const ctx = new Context();
   const logs = [];
   const events = [];
   const cancellations = [];
+  const decisions = [];
   function trace(type, fields = {}) {
     const event = { index: events.length + 1, type, ...fields };
     events.push(event);
@@ -44,8 +49,10 @@ export async function createHarness({
   ctx.provide('systemPrompt', { tools() { return () => {}; }, section() { return () => {}; } });
   ctx.provide('agents', { get(id) { return id === agent.session.id || id === agent.id ? agent : undefined; } });
   ctx.provide('sessions', {});
+  if (jobs !== undefined) ctx.provide('jobs', jobs);
   const tools = new ToolRuntime(ctx);
   const observations = [
+    ctx.on('loopguard/decision', event => { decisions.push(event); }),
     ctx.on('tools/pre-execute', async (execution, next) => {
       trace('tools/pre-execute', { callId: execution.callId, tool: execution.name });
       return next();
@@ -137,7 +144,7 @@ export async function createHarness({
   }
   await beginTurn(message);
   return {
-    ctx, tools, agent, logs, events, cancellations, bodyCounts, register, call, beginTurn,
+    ctx, tools, agent, logs, events, decisions, cancellations, bodyCounts, register, call, beginTurn,
     bridgeResult, variant,
     async dispose() {
       for (const unobserve of observations.reverse()) unobserve();

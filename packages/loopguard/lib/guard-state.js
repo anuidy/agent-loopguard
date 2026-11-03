@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { actionArguments, isShellTool, jobObservation, shellEvidence } from './tool-semantics.js';
+import { JobWaitBudget } from './job-waits.js';
 export const DEFAULT_STOP_PATTERNS = {
   en: /(?<![\p{L}\p{N}_-])(?:stop|halt|cancel|abort|terminate|answer(?:\s+now)?)(?![\p{L}\p{N}_-])/iu,
   zh: /(?:停止|暂停|取消|终止|回答|死循环)/u,
@@ -170,11 +172,21 @@ export class LoopGuardState {
       strictToolLimit: positiveInteger(config.strictToolLimit, 3),
       dryRunMode: Boolean(config.dryRunMode),
       blockExactDuplicates: config.blockExactDuplicates !== undefined ? Boolean(config.blockExactDuplicates) : true,
+      semanticActions: Boolean(config.semanticActions),
+      semanticEvidence: Boolean(config.semanticEvidence),
+      semanticWaits: Boolean(config.semanticWaits),
+      maxWaitPollsPerJob: positiveInteger(config.maxWaitPollsPerJob, 12),
+      maxWaitPollsPerTurn: positiveInteger(config.maxWaitPollsPerTurn, 32),
+      maxJobWaitMs: positiveInteger(config.maxJobWaitMs, 120_000),
+      minJobPollIntervalMs: nonNegativeInteger(config.minJobPollIntervalMs, 200),
       stopPatterns,
     };
     this.stopPatterns = stopPatterns;
     this.logger = config.logger;
     this.onViolation = typeof config.onViolation === 'function' ? config.onViolation : undefined;
+    this.onDecision = typeof config.onDecision === 'function' ? config.onDecision : undefined;
+    this.getJobStatus = typeof config.getJobStatus === 'function' ? config.getJobStatus : () => undefined;
+    this.now = typeof config.now === 'function' ? config.now : () => performance.now();
     this.progressToolNames = new Set(progressToolNames);
     this.strictTools = new Set(strictTools);
     this.byAgent = new Map();
@@ -215,6 +227,13 @@ export class LoopGuardState {
       strictToolLimit: positiveInteger(config.strictToolLimit, this.config.strictToolLimit ?? 3),
       dryRunMode: config.dryRunMode !== undefined ? Boolean(config.dryRunMode) : Boolean(this.config.dryRunMode),
       blockExactDuplicates: config.blockExactDuplicates !== undefined ? Boolean(config.blockExactDuplicates) : this.config.blockExactDuplicates,
+      semanticActions: config.semanticActions !== undefined ? Boolean(config.semanticActions) : this.config.semanticActions,
+      semanticEvidence: config.semanticEvidence !== undefined ? Boolean(config.semanticEvidence) : this.config.semanticEvidence,
+      semanticWaits: config.semanticWaits !== undefined ? Boolean(config.semanticWaits) : this.config.semanticWaits,
+      maxWaitPollsPerJob: positiveInteger(config.maxWaitPollsPerJob, this.config.maxWaitPollsPerJob),
+      maxWaitPollsPerTurn: positiveInteger(config.maxWaitPollsPerTurn, this.config.maxWaitPollsPerTurn),
+      maxJobWaitMs: positiveInteger(config.maxJobWaitMs, this.config.maxJobWaitMs),
+      minJobPollIntervalMs: nonNegativeInteger(config.minJobPollIntervalMs, this.config.minJobPollIntervalMs),
     };
     if (Array.isArray(config.stopPatterns)) {
       this.stopPatterns = config.stopPatterns
@@ -298,6 +317,9 @@ export class LoopGuardState {
       lastResults: new Map(),
       lastProgress: undefined,
       lastEvidence: undefined,
+      semanticEvidence: new Map(),
+      jobTerminals: new Set(),
+      waits: new JobWaitBudget(this.now),
     };
   }
 
@@ -329,14 +351,22 @@ export class LoopGuardState {
 
   findCall(state, callId) {
     if (typeof callId === 'string' && callId.length > 0) {
-      const exact = state.calls.findLast((call) => call.id === callId && !call.released);
-      if (exact !== undefined) return exact;
+      // A result may come from a call rejected before our guard reserved it.
+      // Never attribute an explicit, unmatched ID to a different call.
+      return state.calls.findLast((call) => call.id === callId && !call.released);
     }
     return state.calls.findLast((call) => !call.released && !call.resultSeen);
   }
 
   decrementReservations(state, call) {
     if (!call || !call.counted || call.committed) return;
+    call.counted = false;
+    if (call.waitTicket) {
+      state.waits.release(call.waitTicket);
+      return;
+    }
+    // Progress already cleared the old epoch's counters and repeat groups.
+    if (call.progressEpoch !== state.progressEpoch) return;
     state.attemptsSinceProgress = Math.max(0, state.attemptsSinceProgress - 1);
     if (call.isProgressTool) state.progressAttemptsSinceProgress = Math.max(0, state.progressAttemptsSinceProgress - 1);
     if (call.repeatFingerprint) {
@@ -363,6 +393,7 @@ export class LoopGuardState {
       turn: state.turn,
       reason: detail,
     };
+    this.emitDecision(state, { id: callId, tool: name }, { decision: 'deny', code, reason: detail });
 
     const summary = safeCallSummary(name, args);
     const event = {
@@ -396,6 +427,8 @@ export class LoopGuardState {
     let guidance = 'ACTION REQUIRED: ';
     if (code === 'LOOP_GUARD_STOP') {
       guidance += 'User requested stop. Do NOT invoke further tools. Synthesize your final answer in plain text.';
+    } else if (code.startsWith('LOOP_GUARD_WAIT_')) {
+      guidance += 'Do not busy-poll this job. Use the existing completion notification; report the waiting limit if it is still running.';
     } else if (code === 'LOOP_GUARD_DUPLICATE') {
       guidance += `Tool "${name}" was called with identical arguments without producing new results. Stop repeating this action. Analyze the previous output, alter your parameters, try a different tool, or synthesize a direct textual answer.`;
     } else if (code === 'LOOP_GUARD_REPEAT') {
@@ -408,7 +441,24 @@ export class LoopGuardState {
       guidance += 'Cease tool execution and provide a final text response. The next user turn will reset this guard.';
     }
 
-    return `[${code}] ${detail}. No productive progress was observed; provide the final text answer now. ${guidance}`;
+    const feedback = code.startsWith('LOOP_GUARD_WAIT_')
+      ? 'Waiting policy stopped this query; running status alone is not task progress.'
+      : 'No productive progress was observed; provide the final text answer now.';
+    return `[${code}] ${detail}. ${feedback} ${guidance}`;
+  }
+
+  emitDecision(state, call, fields) {
+    const digest = key => key === undefined ? undefined : createHash('sha256').update(key).digest('hex');
+    try {
+      this.onDecision?.({
+        callId: call.id, tool: call.tool,
+        actionKey: digest(call.fingerprint), evidenceKey: digest(call.resultFingerprint),
+        progressEpoch: state.progressEpoch, attemptsSinceProgress: state.attemptsSinceProgress,
+        waitPollsThisTurn: state.waits.totalPolls, ...fields,
+      });
+    } catch (error) {
+      this.logger?.debug?.('loopguard decision observer failed: ' + String(error));
+    }
   }
 
   denyReason(agent, name, args, callId) {
@@ -416,12 +466,21 @@ export class LoopGuardState {
     if (state.stopRequested) {
       return this.violation(state, agent, name, args, callId, 'LOOP_GUARD_STOP', 'user requested stop; tools are disabled for this turn');
     }
-    if (state.answerOnly) {
+    let jobStatus;
+    if (this.config.semanticWaits && name === 'job_output' && typeof args?.job_id === 'string') {
+      jobStatus = this.getJobStatus(agent, args.job_id);
+    }
+    const wait = this.config.semanticWaits ? state.waits.inspect(name, args, this.config, jobStatus) : undefined;
+    const finalCollection = wait?.terminal && !wait.code && state.blockReason?.startsWith('LOOP_GUARD_WAIT_');
+    if (state.answerOnly && !finalCollection) {
       const code = state.blockReason || 'LOOP_GUARD_STOP';
       return this.violation(state, agent, name, args, callId, code, state.stopReason || 'previous guard violation requires a text answer');
     }
-    const fingerprint = callFingerprint(name, args);
-    const repeatFingerprint = callRepeatFingerprint(name, args);
+    if (wait?.code) return this.violation(state, agent, name, args, callId, wait.code, wait.reason);
+    const identityArgs = this.config.semanticActions ? actionArguments(name, args) : args;
+    const fingerprint = callFingerprint(name, identityArgs);
+    const repeatFingerprint = this.config.semanticActions && isShellTool(name)
+      ? fingerprint : callRepeatFingerprint(name, args);
     const repeatGroup = state.repeatGroups.get(repeatFingerprint);
     const exactGroup = state.exactGroups.get(fingerprint);
     const repeatCount = repeatGroup?.progressEpoch === state.progressEpoch ? repeatGroup.count : 0;
@@ -430,35 +489,37 @@ export class LoopGuardState {
     const isStrictTool = this.strictTools.has(String(name));
     const maxRepeats = isStrictTool ? this.config.strictToolLimit : this.config.maxCallsPerRepeatGroup;
 
-    if (this.config.blockExactDuplicates && exactCount >= 1) {
+    if (!wait && this.config.blockExactDuplicates && exactCount >= 1) {
       return this.violation(state, agent, name, args, callId, 'LOOP_GUARD_DUPLICATE', 'identical tool call repeated without a new result or state change after ' + exactCount + ' attempts');
     }
 
-    if (repeatCount >= maxRepeats) {
+    if (!wait && repeatCount >= maxRepeats) {
       const code = (this.config.blockExactDuplicates && exactCount >= maxRepeats) ? 'LOOP_GUARD_DUPLICATE' : 'LOOP_GUARD_REPEAT';
       return this.violation(state, agent, name, args, callId, code, 'near-identical tool call repeated without a new result or state change after ' + repeatCount + ' attempts');
     }
     const isProgressTool = this.progressToolNames.has(String(name));
-    if (isProgressTool) {
+    if (!wait && isProgressTool) {
       if (state.progressAttemptsSinceProgress >= this.config.maxProgressToolCallsPerTurn) {
         return this.violation(state, agent, name, args, callId, 'LOOP_GUARD_PROGRESS_LIMIT', 'progress/state tool budget exhausted without productive progress');
       }
-    } else if (this.config.maxToolAttemptsPerTurn > 0 && state.attemptsSinceProgress >= this.config.maxToolAttemptsPerTurn) {
+    } else if (!wait && this.config.maxToolAttemptsPerTurn > 0 && state.attemptsSinceProgress >= this.config.maxToolAttemptsPerTurn) {
       return this.violation(state, agent, name, args, callId, 'LOOP_GUARD_LIMIT', 'tool budget exhausted without productive progress');
     }
     const id = typeof callId === 'string' && callId.length > 0 ? callId : 'anonymous-' + String(state.nextCallKey++);
     const priorRepeat = state.repeatGroups.get(repeatFingerprint);
     const priorExact = state.exactGroups.get(fingerprint);
-    state.repeatGroups.set(repeatFingerprint, {
+    if (!wait) state.repeatGroups.set(repeatFingerprint, {
       count: (priorRepeat?.progressEpoch === state.progressEpoch ? priorRepeat.count : 0) + 1,
       progressEpoch: state.progressEpoch,
     });
-    state.exactGroups.set(fingerprint, {
+    if (!wait) state.exactGroups.set(fingerprint, {
       count: (priorExact?.progressEpoch === state.progressEpoch ? priorExact.count : 0) + 1,
       progressEpoch: state.progressEpoch,
     });
     const call = {
       id,
+      tool: String(name),
+      args,
       fingerprint,
       repeatFingerprint,
       isProgressTool,
@@ -466,16 +527,20 @@ export class LoopGuardState {
       committed: false,
       released: false,
       counted: true,
+      progressEpoch: state.progressEpoch,
       resultSeen: false,
+      waitTicket: wait ? state.waits.reserve(wait, id) : undefined,
     };
     state.calls.push(call);
-    state.attemptsSinceProgress += 1;
-    if (isProgressTool) state.progressAttemptsSinceProgress += 1;
+    if (!wait) state.attemptsSinceProgress += 1;
+    if (!wait && isProgressTool) state.progressAttemptsSinceProgress += 1;
+    this.emitDecision(state, call, { decision: wait ? 'wait' : 'allow', jobStatus: wait?.status });
     return undefined;
   }
 
   commitCall(agent, callId) {
-    const state = this.stateFor(agent);
+    const state = this.byAgent.get(this.agentKey(agent));
+    if (state === undefined) return;
     const call = this.findCall(state, callId);
     if (call !== undefined) {
       call.pending = false;
@@ -484,15 +549,33 @@ export class LoopGuardState {
   }
 
   recordResult(agent, execution = {}) {
-    const state = this.stateFor(agent);
+    const state = this.byAgent.get(this.agentKey(agent));
+    if (state === undefined) return { known: false, productive: false };
     const call = this.findCall(state, execution.callId);
-    if (call === undefined) return { known: false, productive: false };
+    if (call === undefined || call.resultSeen) return { known: false, productive: false };
     if (call.pending && !call.committed) {
       call.released = true;
       this.decrementReservations(state, call);
       return { known: false, productive: false };
     }
-    const outcome = outcomeFromExecution(execution);
+    let outcome = outcomeFromExecution(execution);
+    const job = this.config.semanticWaits ? jobObservation(call.tool, call.args, execution.result) : undefined;
+    if (call.waitTicket) state.waits.observe(call.waitTicket, job);
+    const shell = this.config.semanticEvidence ? shellEvidence(call.tool, call.args, execution.result) : undefined;
+    if (shell) {
+      outcome = {
+        known: true, successful: shell.status === 'succeeded',
+        resultFingerprint: resultFingerprint(shell.evidence), progressToken: resultFingerprint(shell.evidence),
+      };
+    } else if (job) {
+      outcome = {
+        known: true, successful: job.status === 'completed',
+        resultFingerprint: resultFingerprint(job), progressToken: resultFingerprint(job),
+      };
+    } else if (this.config.semanticWaits && call.tool === 'job_output') {
+      // A malformed/foreign job DTO is not evidence of task progress.
+      outcome = { ...outcome, successful: false };
+    }
     call.pending = false;
     call.committed = true;
     call.resultSeen = true;
@@ -503,11 +586,21 @@ export class LoopGuardState {
     const resultUnchangedForCall = priorForCall !== undefined
       && priorForCall.resultFingerprint === outcome.resultFingerprint
       && priorForCall.progressToken === outcome.progressToken;
-    const productive = outcome.known && outcome.successful
+    let productive = outcome.known && outcome.successful
       && !resultUnchangedForCall
       && (prior === undefined
         || prior.resultFingerprint !== outcome.resultFingerprint
         || prior.progressToken !== outcome.progressToken);
+    if (shell) {
+      const seen = state.semanticEvidence.get(call.fingerprint) ?? new Set();
+      productive = shell.canProgress && !seen.has(outcome.resultFingerprint) && seen.size < 64;
+      if (productive) seen.add(outcome.resultFingerprint);
+      state.semanticEvidence.set(call.fingerprint, seen);
+    } else if (job) {
+      const terminalKey = `${job.id}:${job.status}`;
+      productive = job.terminal && !state.jobTerminals.has(terminalKey);
+      if (productive) state.jobTerminals.add(terminalKey);
+    }
     call.productive = productive;
     state.lastResults.set(call.repeatFingerprint, outcome);
     if (productive) {
@@ -524,6 +617,12 @@ export class LoopGuardState {
         progressToken: outcome.progressToken,
       };
     }
+    this.emitDecision(state, call, {
+      decision: 'observe', productive,
+      adapter: shell?.adapter ?? (job ? 'job-lifecycle'
+        : this.config.semanticWaits && call.tool === 'job_output' ? 'job-unknown' : 'generic'),
+      status: shell?.status ?? job?.status ?? (outcome.successful ? 'tool-success' : 'tool-error-or-unknown'),
+    });
     return { known: outcome.known, productive };
   }
 }

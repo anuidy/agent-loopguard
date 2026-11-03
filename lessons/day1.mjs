@@ -10,6 +10,7 @@ const options = process.argv.slice(2);
 const scenario = options.find(x => !x.startsWith('--')) ?? 'read-edit-read';
 const bridgeResult = options.includes('--bridge');
 const variant = options.includes('--working') ? 'working' : 'upstream';
+const hasResultIntegration = bridgeResult || variant === 'working';
 if (!['read-edit-read', 'polling'].includes(scenario)
   || options.some(x => x.startsWith('--') && !['--bridge', '--working'].includes(x))) {
   throw new Error('Usage: npm run day1 -- [read-edit-read|polling] [--bridge] [--working]');
@@ -47,12 +48,13 @@ try {
       await h.call('write_file', { path: 'config.txt', text: 'after' }),
       await h.call('read_file', { path: 'config.txt' }),
     ];
-    assert.equal(calls.at(-1).denial === null, bridgeResult);
+    assert.equal(calls.at(-1).denial === null, hasResultIntegration);
+    if (hasResultIntegration) assert.equal(calls.at(-1).value, 'after');
     assert.equal(await readFile(path, 'utf8'), 'after');
     const lastReadEnteredBody = h.events.some(x => x.type === 'tool/body' && x.callId === 'call-3');
-    assert.equal(lastReadEnteredBody, bridgeResult);
+    assert.equal(lastReadEnteredBody, hasResultIntegration);
     outcome = { calls, actualFileContent: 'after', lastReadEnteredBody };
-    console.log(`\nFile on disk = after; third read entered tool body = ${lastReadEnteredBody}`);
+    console.log(`\nFile on disk = after; call 3 (second read) entered tool body = ${lastReadEnteredBody}`);
   } else {
     // A real worker lives longer than two/three short waits. Its completion is
     // independent of whether the guard lets the script inspect it again.

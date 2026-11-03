@@ -1,0 +1,969 @@
+{
+  "measuredDate": "2026-11-03",
+  "scope": "Controlled component traces; real Cordis/ToolRuntime; no model or complete Agent loop.",
+  "controls": "Same scenario and 8-call cap (3 for read/edit/read and changing-error control). C alone widens repeats. Timed workers are real processes; over-budget workers are explicitly terminated during cleanup.",
+  "runtime": {
+    "tools": "0.2.1-rc.2",
+    "cordis": "4.0.5",
+    "schemastery": "3.18.5"
+  },
+  "sourceHashes": {
+    "index.js": "0e9531732c820c9e35adbc6aff1e07d910c11b3cbe2482e08a44acdfadb89421",
+    "guard-state.js": "d9eb5f6bea85b43902072d642fedda0f224e532acacc4e4bb2641ca90c0f7915",
+    "tool-semantics.js": "997f6adffe1faef502b65cddbe2efdad8718a369c3fdd0855a00c516d61a21cd",
+    "job-waits.js": "595866453bfb93152f4ef6bbb1df80606b2865c35781ac336b20a5e87142e787"
+  },
+  "groups": [
+    {
+      "id": "A",
+      "variant": "upstream"
+    },
+    {
+      "id": "B",
+      "variant": "upstream",
+      "bridgeResult": true
+    },
+    {
+      "id": "B-safe",
+      "variant": "working"
+    },
+    {
+      "id": "C",
+      "variant": "working",
+      "config": {
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      }
+    },
+    {
+      "id": "D",
+      "variant": "working",
+      "config": {
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      }
+    }
+  ],
+  "cases": [
+    {
+      "scenario": "read-edit-read",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 15,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "read-edit-read",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 7,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "read-edit-read",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 14,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "read-edit-read",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 12,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "read-edit-read",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 5,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 5,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 9,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 9,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 6,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 4,
+        "observedStatuses": [
+          "failed",
+          "failed"
+        ]
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 2,
+        "executions": 1,
+        "deniedCall": 2,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 1,
+        "elapsedMs": 171,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 8,
+        "elapsedMs": 1108,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 8,
+        "elapsedMs": 1020,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 8,
+        "elapsedMs": 1012,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 2,
+        "elapsedMs": 242,
+        "observedStatuses": [
+          "failed",
+          "failed"
+        ]
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 2,
+        "executions": 1,
+        "deniedCall": 2,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 596,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 604,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 599,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 6,
+        "executions": 6,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 600,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 6,
+        "executions": 6,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 588,
+        "observedStatuses": [
+          "running",
+          "running",
+          "running",
+          "running",
+          "running",
+          "completed"
+        ]
+      }
+    },
+    {
+      "scenario": "background-over-budget",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 4
+      },
+      "summary": {
+        "requests": 2,
+        "executions": 1,
+        "deniedCall": 2,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": true,
+        "actualFailures": 0,
+        "elapsedMs": 165,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "background-over-budget",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 4
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": true,
+        "actualFailures": 0,
+        "elapsedMs": 257,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "background-over-budget",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 4
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": true,
+        "actualFailures": 0,
+        "elapsedMs": 258,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "background-over-budget",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 4,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": true,
+        "actualFailures": 0,
+        "elapsedMs": 813,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "background-over-budget",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 4,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 5,
+        "executions": 4,
+        "deniedCall": 5,
+        "denial": "LOOP_GUARD_WAIT_BUDGET",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": true,
+        "actualFailures": 0,
+        "elapsedMs": 445,
+        "observedStatuses": [
+          "running",
+          "running",
+          "running",
+          "running"
+        ]
+      }
+    },
+    {
+      "scenario": "new-error-then-pass",
+      "group": "A",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 2,
+        "executions": 1,
+        "deniedCall": 2,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 2,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "new-error-then-pass",
+      "group": "B",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 2,
+        "observedStatuses": []
+      }
+    },
+    {
+      "scenario": "new-error-then-pass",
+      "group": "B-safe",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 2,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "new-error-then-pass",
+      "group": "C",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "blockExactDuplicates": false,
+        "maxCallsPerRepeatGroup": 20
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 2,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "new-error-then-pass",
+      "group": "D",
+      "ablation": false,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 3,
+        "deniedCall": null,
+        "denial": null,
+        "completed": true,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 2,
+        "observedStatuses": [
+          "failed",
+          "failed",
+          "succeeded"
+        ]
+      }
+    },
+    {
+      "scenario": "description-retries",
+      "group": "D-without-semanticActions",
+      "ablation": true,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": false,
+        "semanticEvidence": true,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 3,
+        "observedStatuses": [
+          "failed",
+          "failed",
+          "failed",
+          "failed",
+          "failed",
+          "failed",
+          "failed",
+          "failed"
+        ]
+      }
+    },
+    {
+      "scenario": "actual-failure-noise",
+      "group": "D-without-semanticEvidence",
+      "ablation": true,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": false,
+        "semanticWaits": true
+      },
+      "summary": {
+        "requests": 8,
+        "executions": 8,
+        "deniedCall": null,
+        "denial": null,
+        "completed": false,
+        "blockedWhileRunning": false,
+        "workerEventuallyCompleted": null,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 8,
+        "elapsedMs": 883,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    },
+    {
+      "scenario": "background-finish",
+      "group": "D-without-semanticWaits",
+      "ablation": true,
+      "config": {
+        "minJobPollIntervalMs": 0,
+        "maxJobWaitMs": 4000,
+        "maxWaitPollsPerJob": 12,
+        "semanticActions": true,
+        "semanticEvidence": true,
+        "semanticWaits": false
+      },
+      "summary": {
+        "requests": 3,
+        "executions": 2,
+        "deniedCall": 3,
+        "denial": "LOOP_GUARD_DUPLICATE",
+        "completed": false,
+        "blockedWhileRunning": true,
+        "workerEventuallyCompleted": true,
+        "cleanupTerminatesWorker": false,
+        "actualFailures": 0,
+        "elapsedMs": 595,
+        "observedStatuses": [
+          "tool-success",
+          "tool-success"
+        ]
+      }
+    }
+  ]
+}

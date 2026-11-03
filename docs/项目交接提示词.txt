@@ -1,5 +1,13 @@
 请接手并继续开发“DeepSeek Harness 工具语义感知循环控制”项目，用中文与我协作。这是项目开发专用对话；原对话继续负责简历修改。
 
+2026-11-03 最新增补：已实现三项默认关闭的有限语义规则：shell 操作身份、已知 unittest 证据、job_output 有限等待；38 条回归及 33 条主对照/消融组件轨迹通过。原版/桥接的 19 条回放仍保留。最新说明优先看 README.md、docs/面试速读.md 和 docs/progress.txt，完整模型任务仍未评测。下面主体保留历史状态。
+
+2026-11-01 增补：以下主体保留 2026-10-21 的历史交接状态。
+当前工作副本的 index.js 与 guard-state.js 已完成原生结果接入和调用生命周期修复，
+已新增 18 条回归并通过；不再是 5 个实现文件均与上游一致的状态。
+第 1 天个人学习验收仍待确认，语义策略与完整模型任务仍待推进。
+最新说明见 docs/progress.txt、docs/day02-result-integration.md 与实际代码。
+
 本交接于 2026-10-21 根据本地文件、实现文件对比和已有运行记录整理。主要运行验证发生于 2026-10-19；请不要将历史记录误认为今天刚重跑的结果。如果文件已有后续改动，以实际代码和进度记录为准，保留现有工作。
 
 1. 理解我的目标和协作方式。
@@ -71,7 +79,7 @@ Windows 下读取 UTF-8 JSON/文本时请显式指定 encoding='utf-8'，避免�
 接口缺陷：
 DSH 的 tools/result 事件签名是 (exec, result)。exec 是工具名、参数、callId、Agent、signal 等调用身份；结果位于第二参数。
 上游 index.js 只接收 execution，再交给 recordResult；guard-state.js 却从 execution.result/output 读取结果，导致结果被视为 unknown。
-默认读文件→修改文件→再次读取：文件实际已经变成 after，第三次读取却在工具函数执行前被 LOOP_GUARD_DUPLICATE 拦截。
+默认读文件→修改文件→再次读取：文件实际已经变成 after，第三次调用（第二次读取）却在工具函数执行前被 LOOP_GUARD_DUPLICATE 拦截。
 
 诊断桥接：
 native-harness.mjs 的 --bridge 将第二参数映射为 callback({ ...execution, result })，只给原插件监听器传一个新对象，没有修改原生 exec。
@@ -119,7 +127,7 @@ C:\Users\anudy\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin
 原计划日期已过去几天不代表开发阶段完成；按 Day 编号和实际记录推进，不额外挤占每天的时间。
 
 你的第一步：阅读上述关键文件与 Git 状态，简短确认当前实现是否仍匹配交接；然后带我运行 npm.cmd run day1，从 lessons/day1.mjs 的三次 h.call 开始，沿 native-harness.mjs 的 call 方法讲 tools.execute、pre-execute、guard、execute、tool/body、result 的区别。
-用默认与 --bridge 的具体日志讲清结果为何在第二参数、第三次读取为何被拒绝。说明 script/action、tool/body、guard/observe 是实验观测标记，不全是 DSH 原生事件。
+用默认与 --bridge 的具体日志讲清结果为何在第二参数、第三次调用（第二次读取）为何被拒绝。说明 script/action、tool/body、guard/observe 是实验观测标记，不全是 DSH 原生事件。
 分小段讲解，每次给一个可操作步骤，在关键点确认理解。按需要继续可独立完成的工程工作，不反复请求已经授权的常规操作许可。
 完成第 1 天学习验收后，再进入第 2 天正式接口修复和集成回归，不直接跳到全部语义策略。
 
