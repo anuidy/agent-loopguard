@@ -1,0 +1,17 @@
+# Explicit launch settings for one bounded model/tool integration check.
+# No secret values are stored here; the provider reads the launch environment.
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
+    reasoningEffort: off
+- id: llm-deepseek
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    baseURL: https://api.deepseek.com/anthropic
+    thinking: disabled
+    reasoningEffort: off
+    maxTokens: 4096
+    streamIdleTimeoutMs: 20000
+- id: session-title-llm
+  disabled: true

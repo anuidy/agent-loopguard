@@ -1,10 +1,17 @@
 {
   "name": "@agent-loopguard/plugin",
-  "version": "0.1.0-dev.0",
+  "version": "0.1.0-dev.1",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
-  "exports": { ".": "./lib/index.js", "./package.json": "./package.json" },
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": ["lib", "cordis.patch.yml", "LICENSE"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "engines": { "node": ">=24", "dsh": "0.2.1-rc.2" },
   "description": "Development copy derived from dsh-agent-loop-guard 0.2.24",
   "license": "MIT",
   "peerDependencies": {

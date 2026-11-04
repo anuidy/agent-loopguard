@@ -1,0 +1,169 @@
+{
+  "measuredDate": "2026-11-04",
+  "scope": "Installation and one task family smoke; not a strategy benchmark.",
+  "provider": "deepseek-official",
+  "model": "deepseek-flash",
+  "profile": "loopguard",
+  "plugin": "@agent-loopguard/plugin@0.1.0-dev.1",
+  "dshCli": "0.2.1-rc.2",
+  "runs": [
+    {
+      "passed": false,
+      "exitCode": 0,
+      "elapsedSeconds": 3.36,
+      "modelSteps": 2,
+      "toolRequests": 1,
+      "toolErrors": 1,
+      "guardDecisions": 1,
+      "hostNodeVersion": null,
+      "checks": {
+        "process_exited_zero": true,
+        "artifact_matches": false,
+        "native_read_write_read": false,
+        "loopguard_observed_real_calls": true,
+        "recorder_loaded": true,
+        "model_used_multiple_steps": true,
+        "headless_final_event": true,
+        "no_smoke_limit_hit": true,
+        "within_wall_timeout": true
+      },
+      "cause": "legacy-stop-word",
+      "tokens": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "totalTokens": null
+      },
+      "nativeTools": [
+        "read"
+      ],
+      "observedInput": {
+        "counter": 41
+      },
+      "observedResult": null
+    },
+    {
+      "passed": false,
+      "exitCode": 0,
+      "elapsedSeconds": 5.609,
+      "modelSteps": 4,
+      "toolRequests": 3,
+      "toolErrors": 2,
+      "guardDecisions": 5,
+      "hostNodeVersion": null,
+      "checks": {
+        "process_exited_zero": true,
+        "artifact_matches": false,
+        "native_read_write_read": false,
+        "loopguard_observed_real_calls": true,
+        "recorder_loaded": true,
+        "model_used_multiple_steps": true,
+        "headless_final_event": true,
+        "turn_completed": true,
+        "no_smoke_limit_hit": true,
+        "within_wall_timeout": true
+      },
+      "cause": "outer-filesystem-atomic-create",
+      "tokens": {
+        "inputTokens": 1752,
+        "outputTokens": 321,
+        "cacheReadTokens": 27136,
+        "cacheWriteTokens": 0,
+        "totalTokens": 29209
+      },
+      "nativeTools": [
+        "read",
+        "write",
+        "write"
+      ],
+      "observedInput": {
+        "counter": 41
+      },
+      "observedResult": null
+    },
+    {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSeconds": 6.062,
+      "modelSteps": 4,
+      "toolRequests": 3,
+      "toolErrors": 0,
+      "guardDecisions": 6,
+      "hostNodeVersion": null,
+      "checks": {
+        "process_exited_zero": true,
+        "artifact_matches": true,
+        "native_read_write_read": true,
+        "loopguard_observed_real_calls": true,
+        "recorder_loaded": true,
+        "model_used_multiple_steps": true,
+        "headless_final_event": true,
+        "turn_completed": true,
+        "no_smoke_limit_hit": true,
+        "within_wall_timeout": true
+      },
+      "cause": "passed",
+      "tokens": {
+        "inputTokens": 1742,
+        "outputTokens": 230,
+        "cacheReadTokens": 26880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 28852
+      },
+      "nativeTools": [
+        "read",
+        "write",
+        "read"
+      ],
+      "observedInput": {
+        "counter": 41
+      },
+      "observedResult": {
+        "counter": 42
+      }
+    },
+    {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSeconds": 7.5,
+      "modelSteps": 4,
+      "toolRequests": 3,
+      "toolErrors": 0,
+      "guardDecisions": 6,
+      "hostNodeVersion": "v24.21.0",
+      "checks": {
+        "process_exited_zero": true,
+        "artifact_matches": true,
+        "input_unchanged": true,
+        "native_read_write_read": true,
+        "loopguard_observed_real_calls": true,
+        "recorder_loaded": true,
+        "model_used_multiple_steps": true,
+        "headless_final_event": true,
+        "turn_completed": true,
+        "no_smoke_limit_hit": true,
+        "within_wall_timeout": true
+      },
+      "cause": "passed",
+      "tokens": {
+        "inputTokens": 1762,
+        "outputTokens": 233,
+        "cacheReadTokens": 26880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 28875
+      },
+      "nativeTools": [
+        "read",
+        "write",
+        "read"
+      ],
+      "observedInput": {
+        "counter": 7
+      },
+      "observedResult": {
+        "counter": 8
+      }
+    }
+  ]
+}

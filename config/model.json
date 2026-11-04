@@ -3,5 +3,7 @@
   "base_url": "https://api.deepseek.com",
   "model": "deepseek-flash",
   "api_key_environment": "DEEPSEEK_API_KEY",
-  "status": "GET /models verified 2026-10-19; generation and full Agent task not yet exercised"
+  "harness_transport_base_url": "https://api.deepseek.com/anthropic",
+  "harness_profile": "loopguard",
+  "status": "Model requests and native-file task smoke verified 2026-11-04; comparative model-task evaluation pending"
 }

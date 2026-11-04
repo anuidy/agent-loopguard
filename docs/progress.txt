@@ -1,7 +1,7 @@
 项目进度：DeepSeek Harness 工具语义感知循环控制
 第 1 天实际启动：2026-10-19 19:06（UTC+8）
 每日基础预算 3 小时；个人练习实际投入时间由本人记录，不能以自动执行时长代替。
-当前工程阶段：有限工具语义组件版，原生结果接入、生命周期及三项可选语义规则已实现。
+当前工程阶段：可安装headless bundle及首类真实模型工具任务已验证；多任务策略收益评测待推进。
 第 1 天个人操作与理解验收仍待确认；下列“工程准备”项目保留第 1 天历史状态。
 
 工程准备已完成
@@ -16,19 +16,18 @@
 [x] 编写第 1 天讲解、运行命令和关键事件图。
 
 环境项待核实
-[ ] 完整 headless 启动：当前受限环境出现 app.asar realpath EPERM；需从本机外部终端核实。
+[x] 2026-11-04 完整 headless 配置、修改版安装与一类真实模型文件任务已验证；历史帮助命令EPERM未复现，原子文件创建在当前外层沙箱受限、正常外层执行通过。
 日志：results/environment/dsh-headless-help.txt。
-模型列表验证不等同于模型生成或完整 Agent 任务验证。
+模型列表、模型生成、单任务接入与多任务策略收益分别记录，不能相互代替。
 
 个人练习待验收
 [ ] 自己运行 npm.cmd run day1，定位第三次工具请求被拦的位置。
 [ ] 运行结果桥接对照并解释差异。
 [ ] 能解释 Context、ToolRuntime、LoopGuardState，以及 exec 与 result 的职责。
 
-下一次从这里开始（2026-11-01 更新）
-结合 docs/day02-result-integration.md，理解正式监听器如何把 exec/result 交给状态机，
-以及未提交调用释放、callId 关联和 progress epoch 的区别。
-个人理解验收后，再推进 shell actionKey 的字段设计与成对用例。
+下一次从这里开始（2026-11-04 更新）
+结合 docs/harness-integration.md，对照真实模型请求、原生工具、插件决策与Python验收。
+先理解退出码0却任务未完成的两个失败案例，再选一个shell或后台作业任务做小规模成对验证。
 
 2026-10-21 接手核实（助手执行，个人验收未完成）
 - 已完整读取交接文件，并核对 README、教学入口、装配代码和原生工具结果通知实现。
@@ -83,3 +82,14 @@
 - 报告与配置：docs/experiments/semantic-components-2026-11-03.md/.json；本地完整轨迹：results/semantics/comparison.json。短讲解：docs/面试速读.md。
 - 发布目标：现有公开仓库 https://github.com/anuidy/agent-loopguard；本轮包含前阶段尚未上传的接口/生命周期修复，实际推送结果见 Git 历史与本轮聊天。
 - 仍待完成：完整模型 Agent 任务、Token/任务成本指标、更广日志格式及完整通知唤醒验证；个人操作、理解和实际学习用时仍待本人确认。
+
+2026-11-04 安装与首类真实模型工具任务（助手实现与运行）
+- 开发分支 feat/harness-profile-smoke；增加本地tgz与DSH bundle元数据，包名/运行时命名空间统一为 @agent-loopguard/plugin，版本0.1.0-dev.1，兼容范围固定DSH 0.2.1-rc.2；自更新默认关闭。
+- tools/prepare-profile.mjs 在项目专用DSH_HOME下管理loopguard profile，继承headless，用profile内部pnpm store解决缓存登记符号链接EPERM；安装与配置检查通过，重复准备可复用相同包。
+- 模型目录重新GET成功；真实模型请求使用官方Messages传输，密钥仅来自启动环境。运行时CLI 0.2.1-rc.2、打包Node v24.21.0；组件测试的独立Node基线仍按versions.json固定。
+- 一类文件派生任务的两个输入实例通过：41→42、7→8；均为4轮模型请求、原生read/write/read三次调用、0工具错误、6条插件决策。测试观察插件不提供模型或工具结果。
+- 保留两次失败：提示词answer触发上游停止词规则；外层沙箱拒绝原生写入的原子link。两次进程均退出0但产物验收失败；正常外层执行下通过，DSH内部仍为workspace-write。
+- Python验收使用运行前期望值并检查输入未改、精确整数结果、原生工具成功顺序、正常终态、插件决策与资源上限。38条Node回归及7条Python验收器回归通过；上游12文件哈希通过。
+- 产物：docs/harness-integration.md、docs/experiments/harness-smoke-2026-11-04.md/.json；原始会话、提示词、trace与产物位于忽略的.runtime/和results/agent-smoke/。
+- 本轮只证明安装、加载和模型工具链可验收。实际任务使用read/write，尚未测shell/job专属策略的完整任务收益；不把4次排障记录当成功率样本，不改写11月3日组件对照结论。
+- 个人操作、理解和实际学习用时仍待本人验收；本轮事实摘要见harness-integration.md，可带回简历对话。

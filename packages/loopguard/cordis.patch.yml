@@ -1,0 +1,9 @@
+# Opt into this fork as one profile bundle; module defaults remain baseline-safe.
+- insert:
+    - id: loopguard
+      name: '@agent-loopguard/plugin'
+      config:
+        semanticActions: true
+        semanticEvidence: true
+        semanticWaits: true
+        enablePluginUpdater: false

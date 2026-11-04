@@ -3,7 +3,8 @@ DeepSeek Harness 工具语义感知循环控制
 技术栈：Node.js 原生插件与回放；Python 任务评测、夹具和统计。
 
 当前工程阶段：有限语义机制组件版，结果接入、调用生命周期及三项可选语义规则已实现。
-个人操作与理解验收单独记录，尚未确认；完整模型任务评测待完成。当前说明优先看 README.md。
+2026-11-04：已补齐可安装headless bundle，并通过一类真实模型文件任务的两个输入实例，详见 docs/harness-integration.md。
+个人操作与理解验收单独记录；多任务策略收益评测待完成。当前说明优先看 README.md。
 
 在 PowerShell 中运行
 Set-Location -LiteralPath 'D:\其他\简历相关\agent-loopguard'
@@ -22,7 +23,7 @@ npm.cmd run day1 -- --working
 
 结果接入与生命周期回归
 npm.cmd test
-当前共 38 条回归，包含原 18 条接入/生命周期用例及新增 20 条机制用例。
+当前 npm.cmd test 包含38条Node回归，以及7条Python任务验收器回归，不调用模型。
 工作副本另外修复了调用关联和释放边界，后续对照需与“仅桥接”的效果分开记录。
 
 后台等待案例
@@ -75,9 +76,8 @@ npm.cmd ci --ignore-scripts --no-audit --no-fund
 
 完整 DSH 的状态
 已找到桌面版 CLI，--version 为 0.2.1-rc.2，顶层 --help 正常。
-在当前受限执行环境中，使用项目专用 DSH_HOME 启动 headless --help 时，
-遇到 app.asar 的 realpath EPERM；记录见 results/environment/dsh-headless-help.txt。
-这尚未证明完整 Agent 任务可运行，也不能据此断言本机外部终端会有同样问题。
-后续使用 tools/dsh.ps1 从本机终端核实，再处理完整模型任务。
+历史 headless --help 的 app.asar realpath EPERM 记录保留。
+2026-11-04 帮助、配置组合、本地tgz安装与真实模型/工具任务已跑通。
+受限外层环境仍可能阻止原子文件创建，普通本机执行已通过；完整任务策略对照仍待推进。
 
 今天先跑默认 day1 并阅读对应事件，不需要一次读完全部上游代码。

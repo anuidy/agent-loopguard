@@ -6,11 +6,16 @@
   "description": "Tool-aware loop control experiments for DeepSeek Harness",
   "scripts": {
     "day1": "node lessons/day1.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "npm run test:node && npm run test:acceptance",
+    "test:node": "node --test tests/*.test.mjs",
+    "test:acceptance": "python -m unittest discover -s tests -p test_agent_smoke.py",
     "probe": "node lab/probe.mjs",
     "report": "python eval/report_baseline.py",
     "semantics": "node lab/semantic-probe.mjs",
     "report:semantics": "python eval/report_semantics.py",
+    "profile:prepare": "node tools/prepare-profile.mjs",
+    "smoke:agent": "python eval/run_agent_smoke.py",
+    "report:agent": "python -m eval.report_agent_smoke",
     "models": "python tools/check_deepseek.py",
     "verify:vendor": "node tools/verify-vendor.mjs"
   },

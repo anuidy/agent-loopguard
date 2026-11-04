@@ -8,7 +8,7 @@ import {
 import { AssistantOutputGuardState, assistantTextFromMessage } from './assistant-output-state.js';
 import { registerPluginUpdater, isTrustedTelemetryRequest } from './plugin-updater.js';
 
-export const name = '@goodandready/dsh-agent-loop-guard';
+export const name = '@agent-loopguard/plugin';
 export const inject = ['tools', 'agents', 'sessions'];
 
 export function isVolatileRef(value) {
@@ -49,6 +49,7 @@ export const Config = Schema.object({
   maxJobWaitMs: Schema.number().volatile().min(1).default(120_000),
   minJobPollIntervalMs: Schema.number().volatile().min(0).default(200),
   dryRunMode: Schema.boolean().volatile().default(false),
+  enablePluginUpdater: Schema.boolean().volatile().default(false),
   assistantOutputGuard: Schema.boolean().volatile().default(true),
   maxRepeatedAssistantLines: Schema.number().volatile().min(1).default(5),
   maxRepeatedAssistantBlocks: Schema.number().volatile().min(1).default(5),
@@ -250,21 +251,23 @@ export function apply(ctx, config = {}) {
   ctx.inject(['webServer'], (wctx) => {
     try {
       const mountUpdater = () => registerPluginUpdater(wctx, {
-        endpoint: '/api/@goodandready/dsh-agent-loop-guard/update',
+        endpoint: `/api/${name}/update`,
         packageName: name,
         manifestUrl: new URL('../package.json', import.meta.url),
       });
-      if (typeof wctx.effect === 'function') {
-        wctx.effect(mountUpdater, 'dsh-agent-loop-guard: updater');
-      } else {
-        mountUpdater();
+      if (raw.enablePluginUpdater) {
+        if (typeof wctx.effect === 'function') {
+          wctx.effect(mountUpdater, 'dsh-agent-loop-guard: updater');
+        } else {
+          mountUpdater();
+        }
       }
 
       const mountTelemetry = () => {
         if (typeof wctx.webServer?.register !== 'function') return () => {};
         return wctx.webServer.register({
           kind: 'exact',
-          path: '/api/@goodandready/dsh-agent-loop-guard/telemetry',
+          path: `/api/${name}/telemetry`,
           handler: async (request, response) => {
             if (!isTrustedTelemetryRequest(request, wctx)) {
               response.writeHead(403, {
